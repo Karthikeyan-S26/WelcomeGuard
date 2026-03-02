@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DashboardHeader } from '@/components/DashboardHeader';
+import { IntroVideo } from '@/components/IntroVideo';
 import { CameraFeed } from '@/components/CameraFeed';
 import { ProfileCard } from '@/components/ProfileCard';
 import { WelcomeBanner } from '@/components/WelcomeBanner';
@@ -8,11 +9,19 @@ import { useVoiceFeedback } from '@/hooks/useVoiceFeedback';
 import { useProfiles } from '@/hooks/useProfiles';
 
 const Index = () => {
+  const [showIntro, setShowIntro] = useState(() => {
+    return !sessionStorage.getItem('introSeen');
+  });
   const { data: profiles = [] } = useProfiles();
   const { videoRef, canvasRef, modelsLoaded, detectedPerson, cameraError, clearDetection } =
     useFaceDetection(profiles);
   const { speak, reset: resetVoice } = useVoiceFeedback();
   const hideTimerRef = useRef<number | null>(null);
+
+  const handleIntroComplete = () => {
+    sessionStorage.setItem('introSeen', '1');
+    setShowIntro(false);
+  };
 
   // Trigger TTS + auto-clear after 5s
   useEffect(() => {
@@ -32,7 +41,9 @@ const Index = () => {
   }, [detectedPerson, speak, clearDetection, resetVoice]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <>
+      {showIntro && <IntroVideo onComplete={handleIntroComplete} />}
+      <div className="flex min-h-screen flex-col bg-background">
       <WelcomeBanner name={detectedPerson?.profile.name ?? null} />
       <DashboardHeader />
 
@@ -59,7 +70,8 @@ const Index = () => {
         <span>Status: {modelsLoaded ? '● AI Active' : '○ Loading...'}</span>
         <span>Detection: Real-time</span>
       </footer>
-    </div>
+      </div>
+    </>
   );
 };
 
