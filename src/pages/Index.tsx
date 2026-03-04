@@ -34,32 +34,32 @@ const Index = () => {
   return (
     <>
       <div className="flex min-h-screen flex-col bg-background">
-      <WelcomeBanner name={detectedPerson?.profile.name ?? null} />
-      <DashboardHeader />
+        <WelcomeBanner name={detectedPerson?.profile.name ?? null} />
+        <DashboardHeader />
 
-      <main className="flex flex-1 gap-4 p-4">
-        {/* Left — Camera (60%) */}
-        <section className="flex-[3] min-h-[500px]">
-          <CameraFeed
-            videoRef={videoRef}
-            canvasRef={canvasRef}
-            modelsLoaded={modelsLoaded}
-            cameraError={cameraError}
-          />
-        </section>
+        <main className="flex flex-1 gap-4 p-4">
+          {/* Left — Camera (60%) */}
+          <section className="flex-[3] min-h-[500px]">
+            <CameraFeed
+              videoRef={videoRef}
+              canvasRef={canvasRef}
+              modelsLoaded={modelsLoaded}
+              cameraError={cameraError}
+            />
+          </section>
 
-        {/* Right — Profile (40%) */}
-        <aside className="flex-[2]">
-          <ProfileCard profile={detectedPerson?.profile ?? null} />
-        </aside>
-      </main>
+          {/* Right — Profile (40%) */}
+          <aside className="flex-[2]">
+            <ProfileCard profile={detectedPerson?.profile ?? null} />
+          </aside>
+        </main>
 
-      {/* Footer stats bar */}
-      <footer className="flex items-center justify-between border-t border-border bg-card px-6 py-2 text-xs text-muted-foreground">
-        <span>Registered Profiles: {profiles.length}</span>
-        <span>Status: {modelsLoaded ? '● AI Active' : '○ Loading...'}</span>
-        <span>Detection: Real-time</span>
-      </footer>
+        {/* Footer stats bar */}
+        <footer className="flex items-center justify-between border-t border-border bg-card px-6 py-2 text-xs text-muted-foreground">
+          <span>Registered Profiles: {profiles.length}</span>
+          <span>Status: {modelsLoaded ? '● System Active' : '○ Loading...'}</span>
+          <span>Detection: Real-time</span>
+        </footer>
       </div>
     </>
   );
