@@ -100,11 +100,64 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
         }
     };
 
-    const speakResponse = useCallback((text: string) => {
-        if (!synthRef.current) return;
+    const speakResponse = useCallback((originalText: string) => {
         stopSpeaking();
+        const textLower = originalText.toLowerCase();
 
-        const utterance = new SpeechSynthesisUtterance(text);
+        // 1. Map of known custom voice recordings based on keywords
+        const voiceMap: Record<string, string> = {
+            'aruna': '/voices/aruna_mam.ogg',
+            'chairman': '/voices/chairman.ogg',
+            'gopi': '/voices/gopi_sir.ogg',
+            'mohanadevi': '/voices/mohanadevi_mam.ogg',
+            'muthumanickam': '/voices/muthumanickam_sir.ogg',
+            'nandhini': '/voices/nandhini_mam.ogg',
+            'palanikumar': '/voices/palanikumar_sir.ogg',
+            'parthiban': '/voices/parthiban_sir.ogg',
+            'preetha': '/voices/preetha_mam_dean.ogg',
+            'preethi': '/voices/preethi_mam.ogg',
+            'reena': '/voices/reena_mam.ogg',
+            'sathish': '/voices/sathish_sir.ogg',
+            'sathya': '/voices/sathya_mam.ogg',
+            'viswanathan': '/voices/viswanathan_sir.ogg',
+        };
+
+        let customAudioUrl = null;
+
+        // Determine if the LLM's text contains one of our staff profiles which has an audio file
+        // Note: For a more complex AI, you might prompt the LLM to output a JSON keyword, 
+        // but for now we regex map the exact text that comes back.
+        for (const [key, path] of Object.entries(voiceMap)) {
+            if (textLower.includes(key)) {
+                customAudioUrl = path;
+                break;
+            }
+        }
+
+        if (customAudioUrl) {
+            const audio = new window.Audio(customAudioUrl);
+            audioRef.current = audio;
+            setStatus('speaking');
+            audio.onended = () => {
+                setStatus('idle');
+            };
+            audio.onerror = () => {
+                setStatus('idle');
+            };
+            audio.play().catch(e => {
+                console.error('Audio play failed:', e);
+                setStatus('idle');
+            });
+            return;
+        }
+
+        // 2. Fallback to default Speech Synthesis if no matching custom static .ogg file is found
+        if (!synthRef.current) {
+            setStatus('idle');
+            return;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(originalText);
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
 
