@@ -12,10 +12,14 @@ export type ChatMessage = {
 
 export type AssistantStatus = 'idle' | 'listening' | 'thinking' | 'speaking';
 
-const WAKE_WORD = 'hey nova';
-const SYSTEM_PROMPT = `You are Nova, the official AI assistant for the Information Technology Department. Answer questions about the department, courses, staff, research, labs, and placements clearly and professionally in a friendly and professional tone. Keep answers concise.`;
+const SYSTEM_PROMPT = `You are Nova, the official AI assistant for the Information Technology Department.
+You have knowledge of the department staff dataset.
+Use the provided dataset to answer questions about staff members, their designation, role, and qualification.
+Answer clearly and professionally.
+If the user asks about a staff member's designation, return the correct designation.
+If information is not available in the dataset, respond politely that the information is not available.`;
 
-export function useVoiceAssistant(detectedProfile: Profile | null) {
+export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: Profile[] = []) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [status, setStatus] = useState<AssistantStatus>('idle');
 
@@ -180,15 +184,20 @@ export function useVoiceAssistant(detectedProfile: Profile | null) {
                 return;
             }
 
+            // Build context from dataset
+            const datasetContext = allProfiles.length > 0
+                ? "Staff Dataset:\n" + allProfiles.map(p => `${p.name} - ${p.designation || 'Staff'} - ${p.qualification || ''} (${p.role_type})`).join('\n')
+                : "Staff Dataset: Not available.";
+
             // Format previous conversation history for context
             const contents = [
                 {
                     role: "user",
-                    parts: [{ text: SYSTEM_PROMPT }]
+                    parts: [{ text: `${SYSTEM_PROMPT}\n\nContext:\n${datasetContext}` }]
                 },
                 {
                     role: "model",
-                    parts: [{ text: "Understood. I am Nova, the IT Department Assistant." }]
+                    parts: [{ text: "Understood. I have loaded the dataset and am ready to answer questions." }]
                 }
             ];
 
@@ -239,26 +248,13 @@ export function useVoiceAssistant(detectedProfile: Profile | null) {
 
 
     const handleSpeechResult = (transcript: string) => {
-        const lowerTranscript = transcript.toLowerCase();
-
-        // Check if it's the Wake Word
-        if (lowerTranscript.startsWith(WAKE_WORD)) {
-            // Strip out wake word
-            const query = transcript.substring(WAKE_WORD.length).trim();
-            if (query.length > 0) {
-                // We have a full question
-                setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: query }]);
-                sendToLLM(query);
-            } else {
-                // They just said "Hey Nova"
-                const reply = "Yes, how can I help you?";
-                setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: reply }]);
-                speakResponse(reply);
-            }
-        } else if (status === 'listening') {
-            // If we explicitly pressed the mic button, we don't need the wake word
+        // The assistant only listens when the 'Dragon' mic button is pressed.
+        // So we process whatever was heard directly without checking wake words.
+        if (transcript.trim().length > 0) {
             setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: transcript }]);
             sendToLLM(transcript);
+        } else {
+            setStatus('idle');
         }
     };
 

@@ -48,7 +48,7 @@ const Index = () => {
           {/* Right — Profile & Chatbot (40%) */}
           <aside className="flex-[2] flex flex-col gap-4">
             <ProfileCard profile={detectedPerson?.profile ?? null} />
-            <AIChatbot detectedProfile={detectedPerson?.profile ?? null} />
+            <AIChatbot detectedProfile={detectedPerson?.profile ?? null} allProfiles={profiles} />
           </aside>
         </main>
 

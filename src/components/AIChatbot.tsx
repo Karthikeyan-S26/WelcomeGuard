@@ -6,10 +6,11 @@ import { Mic, Loader2, Volume2, Square } from 'lucide-react';
 
 interface AIChatbotProps {
     detectedProfile: Profile | null;
+    allProfiles: Profile[];
 }
 
-export function AIChatbot({ detectedProfile }: AIChatbotProps) {
-    const { messages, status, startListening, stopSpeaking, error } = useVoiceAssistant(detectedProfile);
+export function AIChatbot({ detectedProfile, allProfiles }: AIChatbotProps) {
+    const { messages, status, startListening, stopSpeaking, error } = useVoiceAssistant(detectedProfile, allProfiles);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll to bottom of messages
@@ -49,7 +50,7 @@ export function AIChatbot({ detectedProfile }: AIChatbotProps) {
                 {messages.length === 0 ? (
                     <div className="flex h-full flex-col items-center justify-center text-center opacity-50">
                         <Mic className="h-8 w-8 mb-2 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">Say <b>"Hey Nova"</b><br />or click the microphone below.</p>
+                        <p className="text-sm text-muted-foreground">Click the <b>Dragon Microphone</b> below<br />and ask a question.</p>
                     </div>
                 ) : (
                     messages.map((msg) => (
@@ -59,8 +60,8 @@ export function AIChatbot({ detectedProfile }: AIChatbotProps) {
                         >
                             <div
                                 className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm ${msg.role === 'user'
-                                        ? 'bg-primary text-primary-foreground rounded-tr-sm'
-                                        : 'bg-muted text-foreground border border-border/50 rounded-tl-sm'
+                                    ? 'bg-primary text-primary-foreground rounded-tr-sm'
+                                    : 'bg-muted text-foreground border border-border/50 rounded-tl-sm'
                                     }`}
                             >
                                 {msg.content}
@@ -114,7 +115,7 @@ export function AIChatbot({ detectedProfile }: AIChatbotProps) {
                         onClick={startListening}
                         disabled={status === 'thinking'}
                         className={`h-10 w-10 shrink-0 rounded-full transition-all ${status === 'listening' ? 'animate-pulse' : ''}`}
-                        title="Start Listening"
+                        title="Press Dragon Button to Dictate"
                     >
                         {status === 'thinking' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
                     </Button>

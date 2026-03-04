@@ -27,15 +27,5 @@ C:\Users\KARTHIK\OneDrive\Desktop\welcome-guard\src\components\ui\toggle.tsx
 C:\Users\KARTHIK\OneDrive\Desktop\welcome-guard\src\hooks\useAuth.tsx
   103:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
 
-C:\Users\KARTHIK\OneDrive\Desktop\welcome-guard\src\hooks\useVoiceAssistant.ts
-   21:35  error    Unexpected any. Specify a different type                                                                                                               @typescript-eslint/no-explicit-any
-   33:50  error    Unexpected any. Specify a different type                                                                                                               @typescript-eslint/no-explicit-any
-   33:87  error    Unexpected any. Specify a different type                                                                                                               @typescript-eslint/no-explicit-any
-   47:59  error    Unexpected any. Specify a different type                                                                                                               @typescript-eslint/no-explicit-any
-   52:58  error    Unexpected any. Specify a different type                                                                                                               @typescript-eslint/no-explicit-any
-   80:8   warning  React Hook useEffect has missing dependencies: 'handleSpeechResult', 'status', and 'stopSpeaking'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
-  110:8   warning  React Hook useCallback has a missing dependency: 'stopSpeaking'. Either include it or remove the dependency array                                      react-hooks/exhaustive-deps
-  203:23  error    Unexpected any. Specify a different type                                                                                                               @typescript-eslint/no-explicit-any
-
-Γ£û 16 problems (6 errors, 10 warnings)
+Γ£û 8 problems (0 errors, 8 warnings)
 
