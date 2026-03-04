@@ -174,7 +174,30 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
         synthRef.current.speak(utterance);
     }, []);
 
-    // Profile auto-greeting has been intentionally removed as requested
+    // Profile auto-greeting restored to speak the greeting when face is detected
+    useEffect(() => {
+        if (detectedProfile) {
+            // Don't greet if we already greeted this exact person this session
+            if (hasGreetedProfileRef.current !== detectedProfile.id) {
+                hasGreetedProfileRef.current = detectedProfile.id;
+
+                let greeting = '';
+                const lowerName = detectedProfile.name.toLowerCase();
+
+                if (lowerName.includes('aruna')) {
+                    greeting = `Hello Professor Aruna. How can I assist you today?`;
+                } else if (detectedProfile.role_type === 'staff') {
+                    greeting = `Hello Professor ${detectedProfile.name}. How can I assist you today?`;
+                } else {
+                    greeting = `Hello ${detectedProfile.name}. How can I assist you today?`;
+                }
+
+                // We don't need to manually map to ogg here because speakResponse handles custom mapping automatically now!
+                setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: greeting }]);
+                speakResponse(greeting);
+            }
+        }
+    }, [detectedProfile, speakResponse]);
 
     const sendToLLM = async (userText: string) => {
         setStatus('thinking');
