@@ -186,10 +186,36 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
 
                 if (lowerName.includes('aruna')) {
                     greeting = `Hello Professor Aruna. How can I assist you today?`;
+                } else if (lowerName.includes('chairman')) {
+                    greeting = `Greetings Chairman. Welcome to the IT Department.`;
+                } else if (lowerName.includes('gopi')) {
+                    greeting = `Hello Professor Gopi. How can I assist you today?`;
+                } else if (lowerName.includes('mohanadevi')) {
+                    greeting = `Hello Professor Mohanadevi. How can I assist you today?`;
+                } else if (lowerName.includes('muthumanickam')) {
+                    greeting = `Hello Professor Muthumanickam. How can I assist you today?`;
+                } else if (lowerName.includes('nandhini')) {
+                    greeting = `Hello Professor Nandhini. How can I assist you today?`;
+                } else if (lowerName.includes('palanikumar')) {
+                    greeting = `Hello Professor Palanikumar. How can I assist you today?`;
+                } else if (lowerName.includes('parthiban')) {
+                    greeting = `Hello Professor Parthiban. How can I assist you today?`;
+                } else if (lowerName.includes('preetha')) {
+                    greeting = `Hello Dean Preetha. How can I assist you today?`;
+                } else if (lowerName.includes('preethi')) {
+                    greeting = `Hello Professor Preethi. How can I assist you today?`;
+                } else if (lowerName.includes('reena')) {
+                    greeting = `Hello Professor Reena. How can I assist you today?`;
+                } else if (lowerName.includes('sathish')) {
+                    greeting = `Hello Professor Sathish. How can I assist you today?`;
+                } else if (lowerName.includes('sathya')) {
+                    greeting = `Hello Professor Sathya. How can I assist you today?`;
+                } else if (lowerName.includes('viswanathan')) {
+                    greeting = `Hello Professor Viswanathan. How can I assist you today?`;
                 } else if (detectedProfile.role_type === 'staff') {
-                    greeting = `Hello Professor ${detectedProfile.name}. How can I assist you today?`;
+                    greeting = `Hello Professor ${detectedProfile.name.split(' ')[0]}. How can I assist you today?`;
                 } else {
-                    greeting = `Hello ${detectedProfile.name}. How can I assist you today?`;
+                    greeting = `Hello ${detectedProfile.name.split(' ')[0]}. How can I assist you today?`;
                 }
 
                 // We don't need to manually map to ogg here because speakResponse handles custom mapping automatically now!
