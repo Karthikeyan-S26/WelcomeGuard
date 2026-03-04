@@ -136,6 +136,7 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
             'reena': '/voices/reena_mam.ogg',
             'sathish': '/voices/sathish_sir.ogg',
             'sathya': '/voices/sathya_mam.ogg',
+            'surya': '/voices/surya_prasath.ogg',
             'viswanathan': '/voices/viswanathan_sir.ogg',
         };
 
@@ -229,6 +230,8 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
                     greeting = `Hello Professor Sathish. How can I assist you today?`;
                 } else if (lowerName.includes('sathya')) {
                     greeting = `Hello Professor Sathya. How can I assist you today?`;
+                } else if (lowerName.includes('surya')) {
+                    greeting = `Hello Surya. Welcome to the IT Department!`;
                 } else if (lowerName.includes('viswanathan')) {
                     greeting = `Hello Professor Viswanathan. How can I assist you today?`;
                 } else if (detectedProfile.role_type === 'staff') {
