@@ -4,32 +4,29 @@ import { CameraFeed } from '@/components/CameraFeed';
 import { ProfileCard } from '@/components/ProfileCard';
 import { WelcomeBanner } from '@/components/WelcomeBanner';
 import { useFaceDetection } from '@/hooks/useFaceDetection';
-import { useVoiceFeedback } from '@/hooks/useVoiceFeedback';
 import { useProfiles } from '@/hooks/useProfiles';
+import { AIChatbot } from '@/components/AIChatbot';
 
 const Index = () => {
   const { data: profiles = [] } = useProfiles();
   const { videoRef, canvasRef, modelsLoaded, detectedPerson, cameraError, clearDetection } =
     useFaceDetection(profiles);
-  const { speak, reset: resetVoice } = useVoiceFeedback();
+  // The new AIChatbot handles the voice greeting now.
   const hideTimerRef = useRef<number | null>(null);
 
-  // Trigger TTS + auto-clear after 5s
+  // Auto-clear detection after 8s
   useEffect(() => {
     if (detectedPerson) {
-      speak(detectedPerson.profile.name);
-
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       hideTimerRef.current = window.setTimeout(() => {
         clearDetection();
-        resetVoice();
       }, 8000);
     }
 
     return () => {
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     };
-  }, [detectedPerson, speak, clearDetection, resetVoice]);
+  }, [detectedPerson, clearDetection]);
 
   return (
     <>
@@ -48,9 +45,10 @@ const Index = () => {
             />
           </section>
 
-          {/* Right — Profile (40%) */}
-          <aside className="flex-[2]">
+          {/* Right — Profile & Chatbot (40%) */}
+          <aside className="flex-[2] flex flex-col gap-4">
             <ProfileCard profile={detectedPerson?.profile ?? null} />
+            <AIChatbot detectedProfile={detectedPerson?.profile ?? null} />
           </aside>
         </main>
 
