@@ -22,7 +22,6 @@ If information is not available in the dataset, respond politely that the inform
 export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: Profile[] = []) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [status, setStatus] = useState<AssistantStatus>('idle');
-    const [isActive, setIsActive] = useState<boolean>(false); // Tracks if chatbot UI is awake
 
     // Track continuous listening
     const recognitionRef = useRef<any>(null);
@@ -42,7 +41,7 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
 
             if (SpeechRecognition) {
                 recognitionRef.current = new SpeechRecognition();
-                recognitionRef.current.continuous = true; // Use continuous to listen safely in background
+                recognitionRef.current.continuous = false; // We use false so it stops after a phrase
                 recognitionRef.current.interimResults = false;
                 recognitionRef.current.lang = 'en-US';
 
@@ -69,16 +68,9 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
 
                 recognitionRef.current.onend = () => {
                     isListeningRef.current = false;
-                    // If we manually started listening for a single query and it ended, try to restart background listening
+                    // If we manually started listening for a single query and it ended
                     if (status === 'listening') {
                         setStatus('idle');
-                    }
-                    if (status !== 'speaking' && status !== 'thinking') {
-                        try {
-                            recognitionRef.current.start();
-                        } catch (e) {
-                            // Ignore normal fails
-                        }
                     }
                 };
             } else {
@@ -86,15 +78,7 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
             }
         }
 
-        // Try to start listening immediately on component load if supported
-        const timer = setTimeout(() => {
-            if (recognitionRef.current && !isListeningRef.current) {
-                try { recognitionRef.current.start(); } catch (e) { console.warn(e) }
-            }
-        }, 1500);
-
         return () => {
-            clearTimeout(timer);
             stopSpeaking();
             if (recognitionRef.current && isListeningRef.current) {
                 recognitionRef.current.stop();
@@ -116,65 +100,11 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
         }
     };
 
-    const speakResponse = useCallback((originalText: string) => {
+    const speakResponse = useCallback((text: string) => {
+        if (!synthRef.current) return;
         stopSpeaking();
-        const textLower = originalText.toLowerCase();
 
-        // 1. Map of known custom voice recordings based on keywords
-        const voiceMap: Record<string, string> = {
-            'aruna': '/voices/aruna_mam.ogg',
-            'chairman': '/voices/chairman.ogg',
-            'gopi': '/voices/gopi_sir.ogg',
-            'kishore': '/voices/kishore.ogg',
-            'mohanadevi': '/voices/mohanadevi_mam.ogg',
-            'muthumanickam': '/voices/muthumanickam_sir.ogg',
-            'nandhini': '/voices/nandhini_mam.ogg',
-            'palanikumar': '/voices/palanikumar_sir.ogg',
-            'parthiban': '/voices/parthiban_sir.ogg',
-            'preetha': '/voices/preetha_mam_dean.ogg',
-            'preethi': '/voices/preethi_mam.ogg',
-            'reena': '/voices/reena_mam.ogg',
-            'sathish': '/voices/sathish_sir.ogg',
-            'sathya': '/voices/sathya_mam.ogg',
-            'viswanathan': '/voices/viswanathan_sir.ogg',
-        };
-
-        let customAudioUrl = null;
-
-        // Determine if the LLM's text contains one of our staff profiles which has an audio file
-        // Note: For a more complex AI, you might prompt the LLM to output a JSON keyword, 
-        // but for now we regex map the exact text that comes back.
-        for (const [key, path] of Object.entries(voiceMap)) {
-            if (textLower.includes(key)) {
-                customAudioUrl = path;
-                break;
-            }
-        }
-
-        if (customAudioUrl) {
-            const audio = new window.Audio(customAudioUrl);
-            audioRef.current = audio;
-            setStatus('speaking');
-            audio.onended = () => {
-                setStatus('idle');
-            };
-            audio.onerror = () => {
-                setStatus('idle');
-            };
-            audio.play().catch(e => {
-                console.error('Audio play failed:', e);
-                setStatus('idle');
-            });
-            return;
-        }
-
-        // 2. Fallback to default Speech Synthesis if no matching custom static .ogg file is found
-        if (!synthRef.current) {
-            setStatus('idle');
-            return;
-        }
-
-        const utterance = new SpeechSynthesisUtterance(originalText);
+        const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
 
@@ -191,7 +121,7 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
         synthRef.current.speak(utterance);
     }, []);
 
-    // Profile auto-greeting restored to speak the greeting when face is detected
+    // Profile auto-greeting
     useEffect(() => {
         if (detectedProfile) {
             // Don't greet if we already greeted this exact person this session
@@ -199,50 +129,44 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
                 hasGreetedProfileRef.current = detectedProfile.id;
 
                 let greeting = '';
-                const lowerName = detectedProfile.name.toLowerCase();
+                let customAudioUrl = null;
 
-                if (lowerName.includes('aruna')) {
+                if (detectedProfile.name.toLowerCase().includes('aruna')) {
                     greeting = `Hello Professor Aruna. How can I assist you today?`;
-                } else if (lowerName.includes('chairman')) {
-                    greeting = `Greetings Chairman. Welcome to the IT Department.`;
-                } else if (lowerName.includes('gopi')) {
-                    greeting = `Hello Professor Gopi. How can I assist you today?`;
-                } else if (lowerName.includes('kishore')) {
-                    greeting = `Hello Kishore. Welcome to the IT Department!`;
-                } else if (lowerName.includes('mohanadevi')) {
-                    greeting = `Hello Professor Mohanadevi. How can I assist you today?`;
-                } else if (lowerName.includes('muthumanickam')) {
-                    greeting = `Hello Professor Muthumanickam. How can I assist you today?`;
-                } else if (lowerName.includes('nandhini')) {
-                    greeting = `Hello Professor Nandhini. How can I assist you today?`;
-                } else if (lowerName.includes('palanikumar')) {
-                    greeting = `Hello Professor Palanikumar. How can I assist you today?`;
-                } else if (lowerName.includes('parthiban')) {
-                    greeting = `Hello Professor Parthiban. How can I assist you today?`;
-                } else if (lowerName.includes('preetha')) {
-                    greeting = `Hello Dean Preetha. How can I assist you today?`;
-                } else if (lowerName.includes('preethi')) {
-                    greeting = `Hello Professor Preethi. How can I assist you today?`;
-                } else if (lowerName.includes('reena')) {
-                    greeting = `Hello Professor Reena. How can I assist you today?`;
-                } else if (lowerName.includes('sathish')) {
-                    greeting = `Hello Professor Sathish. How can I assist you today?`;
-                } else if (lowerName.includes('sathya')) {
-                    greeting = `Hello Professor Sathya. How can I assist you today?`;
-                } else if (lowerName.includes('viswanathan')) {
-                    greeting = `Hello Professor Viswanathan. How can I assist you today?`;
+                    customAudioUrl = '/voices/aruna.ogg';
                 } else if (detectedProfile.role_type === 'staff') {
-                    greeting = `Hello Professor ${detectedProfile.name.split(' ')[0]}. How can I assist you today?`;
+                    greeting = `Hello Professor ${detectedProfile.name}. How can I assist you today?`;
                 } else {
-                    greeting = `Hello ${detectedProfile.name.split(' ')[0]}. How can I assist you today?`;
+                    greeting = `Hello ${detectedProfile.name}. How can I assist you today?`;
                 }
 
-                // We purposefully DO NOT add this to setMessages, so the text chat 
-                // remains empty/unstarted until the user manually invokes the dragon button!
-                speakResponse(greeting);
+                setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: greeting }]);
+
+                if (customAudioUrl) {
+                    const audio = new window.Audio(customAudioUrl);
+                    audioRef.current = audio;
+                    setStatus('speaking');
+                    audio.onended = () => {
+                        setStatus('idle');
+                    };
+                    audio.onerror = () => {
+                        setStatus('idle');
+                    };
+                    audio.play().catch(e => {
+                        console.error('Audio play failed:', e);
+                        setStatus('idle');
+                    });
+                } else {
+                    speakResponse(greeting);
+                }
             }
+        } else {
+            // Profile cleared, reset greeted stat so they can be greeted again if they return 
+            // (optional depending on UX preference)
+            // hasGreetedProfileRef.current = null;
         }
     }, [detectedProfile, speakResponse]);
+
 
     const sendToLLM = async (userText: string) => {
         setStatus('thinking');
@@ -324,48 +248,25 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
 
 
     const handleSpeechResult = (transcript: string) => {
-        const textStr = transcript.trim();
-        const lowerTranscript = textStr.toLowerCase();
-
-        if (!isActive) {
-            // We are OFF and just continuously searching for wake word
-            if (lowerTranscript.includes('hey nova')) {
-                setIsActive(true);
-                const query = lowerTranscript.replace(/hey nova/g, '').trim();
-                if (query.length > 0) {
-                    setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: query }]);
-                    sendToLLM(query);
-                } else {
-                    const greeting = "Hi there, I am Nova. What can I do for you today?";
-                    setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: greeting }]);
-                    speakResponse(greeting);
-                }
-            }
+        // The assistant only listens when the 'Dragon' mic button is pressed.
+        // So we process whatever was heard directly without checking wake words.
+        if (transcript.trim().length > 0) {
+            setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: transcript }]);
+            sendToLLM(transcript);
         } else {
-            // We are actively ON checking requests 
-            if (textStr.length > 0) {
-                setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: textStr }]);
-                sendToLLM(textStr);
-            } else {
-                setStatus('idle');
-            }
+            setStatus('idle');
         }
     };
 
     const startListening = () => {
-        if (!isActive) {
-            setIsActive(true);
-        }
         if (recognitionRef.current) {
             stopSpeaking();
             setStatus('listening');
 
-            if (!isListeningRef.current) {
-                try {
-                    recognitionRef.current.start();
-                } catch (e) {
-                    console.error("Speech recognition is already running");
-                }
+            try {
+                recognitionRef.current.start();
+            } catch (e) {
+                console.error("Speech recognition is already running");
             }
         }
     };
@@ -376,7 +277,5 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
         startListening,
         stopSpeaking,
         error,
-        isActive,
-        setIsActive
     };
 }

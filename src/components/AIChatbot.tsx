@@ -11,7 +11,7 @@ interface AIChatbotProps {
 }
 
 export function AIChatbot({ detectedProfile, allProfiles }: AIChatbotProps) {
-    const { messages, status, startListening, stopSpeaking, error } = useVoiceAssistant(detectedProfile, allProfiles);
+    const { messages, status, startListening, stopSpeaking, error, isActive } = useVoiceAssistant(detectedProfile, allProfiles);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll to bottom of messages
@@ -19,7 +19,37 @@ export function AIChatbot({ detectedProfile, allProfiles }: AIChatbotProps) {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
-    }, [messages, status]);
+    }, [messages, status, isActive]);
+
+    if (!isActive) {
+        return (
+            <div className="mt-4 flex flex-col items-center justify-center rounded-xl border border-border/40 bg-card shadow-sm h-[400px] relative overflow-hidden group">
+                <div className="absolute top-4 left-4">
+                    <h3 className="text-sm font-semibold text-foreground">Nova AI Assistant</h3>
+                </div>
+                <div className="absolute top-4 right-4 flex h-2 w-2">
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-muted-foreground/30"></span>
+                </div>
+
+                <button
+                    onClick={startListening}
+                    aria-label="Start voice conversation with Nova"
+                    title="Tap Dragon to start Chatbot or safely say 'Hey Nova'"
+                    className="relative flex items-center justify-center h-28 w-28 shrink-0 rounded-full border-4 border-[#22c55e] bg-white overflow-hidden transition-all duration-300 hover:shadow-[0_0_25px_rgba(34,197,94,0.6)] cursor-pointer hover:scale-105 active:scale-95 group-hover:animate-pulse shadow-md"
+                >
+                    <img
+                        src={dragonLogo}
+                        alt="IT Dragon Logo"
+                        className="h-full w-full object-cover grayscale-0"
+                    />
+                </button>
+                <div className="mt-8 text-center space-y-1">
+                    <p className="text-sm text-foreground font-medium">Say <b>"Hey Nova"</b></p>
+                    <p className="text-xs text-muted-foreground">or Tap Dragon to Wake</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="mt-4 flex flex-col rounded-xl border border-border/40 bg-card shadow-sm h-[400px]">
@@ -51,7 +81,7 @@ export function AIChatbot({ detectedProfile, allProfiles }: AIChatbotProps) {
                 {messages.length === 0 ? (
                     <div className="flex h-full flex-col items-center justify-center text-center opacity-50">
                         <img src={dragonLogo} alt="Dragon Logo" className="h-12 w-12 mb-3 rounded-full object-cover grayscale opacity-50" />
-                        <p className="text-sm text-muted-foreground">Tap the <b>Dragon</b> below<br />to speak with Nova.</p>
+                        <p className="text-sm text-muted-foreground">Nova is actively listening...</p>
                     </div>
                 ) : (
                     messages.map((msg) => (
