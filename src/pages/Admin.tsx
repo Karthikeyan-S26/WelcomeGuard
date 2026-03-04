@@ -678,6 +678,18 @@ export default function Admin() {
             </div>
             <div className="col-span-2 space-y-2">
               <Label htmlFor="edit-photo">Replace Photo</Label>
+              {editingProfile?.photo_url && (
+                <div className="mb-2 flex items-center gap-3">
+                  <div className="h-16 w-16 overflow-hidden rounded-md border border-muted">
+                    <img
+                      src={editingProfile.photo_url}
+                      alt={editName}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <span className="text-sm text-muted-foreground">Current Photo Saved!</span>
+                </div>
+              )}
               <Input
                 id="edit-photo"
                 type="file"
