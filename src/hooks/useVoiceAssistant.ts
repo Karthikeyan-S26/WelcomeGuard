@@ -38,6 +38,29 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
     const listeningTimeoutRef = useRef<number | null>(null);
     const retryTimeoutRef = useRef<number | null>(null);
 
+    // Helper function to find voice by name
+    const findVoiceUrl = useCallback((name: string): string | null => {
+        const voiceMap: Record<string, string> = dynamicVoiceMap;
+        const nameLower = name.toLowerCase().trim();
+        
+        // Direct match
+        if (voiceMap[nameLower]) {
+            console.log('Found direct voice match for:', nameLower);
+            return voiceMap[nameLower];
+        }
+        
+        // Check if any key in voiceMap matches part of the name
+        for (const [key, value] of Object.entries(voiceMap)) {
+            if (nameLower.includes(key.toLowerCase()) || key.toLowerCase().includes(nameLower)) {
+                console.log('Found partial voice match:', key, 'for name:', nameLower);
+                return value;
+            }
+        }
+        
+        console.log('No voice found for:', nameLower, 'Available keys:', Object.keys(voiceMap).slice(0, 10));
+        return null;
+    }, []);
+
     const stopSpeaking = () => {
         if (synthRef.current && synthRef.current.speaking) {
             synthRef.current.cancel();
@@ -51,6 +74,15 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
             setStatus('idle');
         }
     };
+
+    const resetListeningTimeout = useCallback(() => {
+        if (listeningTimeoutRef.current) clearTimeout(listeningTimeoutRef.current);
+        listeningTimeoutRef.current = window.setTimeout(() => {
+            if (statusRef.current === 'listening') {
+                setStatus('idle');
+            }
+        }, 8000);
+    }, []);
 
     const speakResponse = useCallback((originalText: string, keepListening: boolean = false) => {
         stopSpeaking();
@@ -111,7 +143,7 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
         };
 
         synthRef.current.speak(utterance);
-    }, []);
+    }, [resetListeningTimeout]);
 
     const playRecordedVoice = useCallback((voiceUrl: string, keepListening: boolean = false) => {
         stopSpeaking();
@@ -156,19 +188,21 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
 
             setStatus('thinking');
             let name = '';
-            let displayName = detectedProfile.name;
+            const displayName = detectedProfile.name;
+            
             if (detectedProfile.role_type === 'staff') {
                 name = `Professor ${detectedProfile.name}`;
             } else {
                 name = detectedProfile.name;
             }
 
-            // Check if there's a recorded voice for this person
-            const displayNameLower = displayName.toLowerCase();
-            const nameLower = name.toLowerCase();
-            const voiceUrl = dynamicVoiceMap[displayNameLower] || dynamicVoiceMap[nameLower];
+            console.log('Face detected for:', detectedProfile.name, '| Role:', detectedProfile.role_type);
             
-            console.log('Profile detected:', { displayName, name, displayNameLower, nameLower, voiceUrl, availableKeys: Object.keys(dynamicVoiceMap) });
+            // Try to find voice for both original name and display name
+            let voiceUrl = findVoiceUrl(displayName);
+            if (!voiceUrl && detectedProfile.role_type === 'staff') {
+                voiceUrl = findVoiceUrl(detectedProfile.name);
+            }
             
             const greeting = name ? `Hello ${name}. Welcome to the IT Tech Arena.` : `Hello. Welcome to the IT Tech Arena.`;
             
@@ -177,30 +211,18 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
             
             setTimeout(() => {
                 if (voiceUrl) {
-                    // Use recorded voice
-                    console.log('Playing recorded voice:', voiceUrl);
+                    console.log('Playing voice:', voiceUrl);
                     playRecordedVoice(voiceUrl, false);
                 } else {
-                    // Fallback to text-to-speech
                     console.log('No voice found, using text-to-speech');
                     speakResponse(greeting, false);
                 }
             }, 500);
 
         } else if (!detectedProfile) {
-            // Reset when the detection clears
             lastGreetedIdRef.current = null;
         }
-    }, [detectedProfile, speakResponse, playRecordedVoice]);
-
-    const resetListeningTimeout = () => {
-        if (listeningTimeoutRef.current) clearTimeout(listeningTimeoutRef.current);
-        listeningTimeoutRef.current = window.setTimeout(() => {
-            if (statusRef.current === 'listening') {
-                setStatus('idle');
-            }
-        }, 8000);
-    };
+    }, [detectedProfile, speakResponse, playRecordedVoice, findVoiceUrl, resetListeningTimeout]);
 
     const processCommand = (query: string) => {
         if (listeningTimeoutRef.current) clearTimeout(listeningTimeoutRef.current);
