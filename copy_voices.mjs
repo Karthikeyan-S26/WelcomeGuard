@@ -31,7 +31,9 @@ function copyVoicesRecursively(dir) {
             let keyWords = words.filter(w => w.length > 2 && !stopWords.includes(w));
             let key = keyWords.length > 0 ? keyWords[0] : cleanName.split('_')[0];
 
+            // Map both the clean key and the strict folder name
             voiceMap[key] = `/voices/${cleanName}${ext}`;
+            voiceMap[folderName.toLowerCase()] = `/voices/${cleanName}${ext}`;
         }
     }
 
