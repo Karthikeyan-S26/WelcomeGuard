@@ -43,21 +43,24 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
         const voiceMap: Record<string, string> = dynamicVoiceMap;
         const nameLower = name.toLowerCase().trim();
         
+        console.log('🔍 Looking for voice:', nameLower);
+        
         // Direct match
         if (voiceMap[nameLower]) {
-            console.log('Found direct voice match for:', nameLower);
+            console.log('✅ Found direct voice match for:', nameLower, '→', voiceMap[nameLower]);
             return voiceMap[nameLower];
         }
         
         // Check if any key in voiceMap matches part of the name
         for (const [key, value] of Object.entries(voiceMap)) {
             if (nameLower.includes(key.toLowerCase()) || key.toLowerCase().includes(nameLower)) {
-                console.log('Found partial voice match:', key, 'for name:', nameLower);
+                console.log('✅ Found partial voice match:', key, '→', value, 'for name:', nameLower);
                 return value;
             }
         }
         
-        console.log('No voice found for:', nameLower, 'Available keys:', Object.keys(voiceMap).slice(0, 10));
+        console.log('❌ No voice found for:', nameLower);
+        console.log('Available voice keys (first 10):', Object.keys(voiceMap).slice(0, 10));
         return null;
     }, []);
 
@@ -147,37 +150,54 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
 
     const playRecordedVoice = useCallback((voiceUrl: string, keepListening: boolean = false) => {
         stopSpeaking();
-        console.log('Attempting to play voice:', voiceUrl);
+        console.log('🎵 Attempting to play voice:', voiceUrl);
         
         // Ensure the path is absolute
         const audioPath = voiceUrl.startsWith('/') ? voiceUrl : '/' + voiceUrl;
-        const audio = new window.Audio(audioPath);
-        audioRef.current = audio;
+        console.log('🎵 Final audio path:', audioPath);
         
-        audio.addEventListener('loadstart', () => {
-            console.log('Audio loading started:', audioPath);
+        try {
+            const audio = new window.Audio(audioPath);
+            audioRef.current = audio;
+            
+            // Set speaking status immediately
             setStatus('speaking');
-        });
-        
-        audio.addEventListener('canplay', () => {
-            console.log('Audio can play:', audioPath);
-        });
-        
-        audio.onended = () => {
-            console.log('Audio playback ended');
+            
+            audio.addEventListener('canplaythrough', () => {
+                console.log('✅ Audio ready to play:', audioPath);
+            });
+            
+            audio.onended = () => {
+                console.log('✅ Audio playback completed');
+                setStatus(keepListening ? 'listening' : 'idle');
+                if (keepListening) resetListeningTimeout();
+            };
+            
+            audio.onerror = (e) => {
+                console.error('❌ Audio error:', e, 'Path:', audioPath);
+                toast.error('Voice playback failed');
+                setStatus(keepListening ? 'listening' : 'idle');
+            };
+            
+            // Try to play
+            const playPromise = audio.play();
+            
+            if (playPromise !== undefined) {
+                playPromise
+                    .then(() => {
+                        console.log('✅ Voice playback started successfully');
+                    })
+                    .catch(e => {
+                        console.error('❌ Play failed:', e.message);
+                        toast.error('Audio play blocked. Please interact with the page first.');
+                        setStatus(keepListening ? 'listening' : 'idle');
+                    });
+            }
+        } catch (e) {
+            console.error('❌ Failed to create audio:', e);
+            toast.error('Failed to load voice');
             setStatus(keepListening ? 'listening' : 'idle');
-            if (keepListening) resetListeningTimeout();
-        };
-        
-        audio.onerror = (e) => {
-            console.error('Audio playback error:', e, audioPath);
-            setStatus(keepListening ? 'listening' : 'idle');
-        };
-        
-        audio.play().catch(e => {
-            console.error('Voice playback failed:', e, audioPath);
-            setStatus(keepListening ? 'listening' : 'idle');
-        });
+        }
     }, [resetListeningTimeout]);
 
     useEffect(() => {
@@ -196,13 +216,15 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
                 name = detectedProfile.name;
             }
 
-            console.log('Face detected for:', detectedProfile.name, '| Role:', detectedProfile.role_type);
+            console.log('👤 Face detected for:', detectedProfile.name, '| Role:', detectedProfile.role_type);
             
             // Try to find voice for both original name and display name
             let voiceUrl = findVoiceUrl(displayName);
             if (!voiceUrl && detectedProfile.role_type === 'staff') {
                 voiceUrl = findVoiceUrl(detectedProfile.name);
             }
+            
+            console.log('🔍 Voice lookup result:', voiceUrl ? `Found: ${voiceUrl}` : 'Not found');
             
             const greeting = name ? `Hello ${name}. Welcome to the IT Tech Arena.` : `Hello. Welcome to the IT Tech Arena.`;
             
@@ -211,10 +233,10 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
             
             setTimeout(() => {
                 if (voiceUrl) {
-                    console.log('Playing voice:', voiceUrl);
+                    console.log('🎤 Playing recorded voice for:', detectedProfile.name);
                     playRecordedVoice(voiceUrl, false);
                 } else {
-                    console.log('No voice found, using text-to-speech');
+                    console.log('🔊 Using text-to-speech for:', detectedProfile.name);
                     speakResponse(greeting, false);
                 }
             }, 500);
