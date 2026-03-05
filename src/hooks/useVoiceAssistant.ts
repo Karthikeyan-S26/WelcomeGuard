@@ -115,21 +115,38 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
 
     const playRecordedVoice = useCallback((voiceUrl: string, keepListening: boolean = false) => {
         stopSpeaking();
-        const audio = new window.Audio(voiceUrl);
+        console.log('Attempting to play voice:', voiceUrl);
+        
+        // Ensure the path is absolute
+        const audioPath = voiceUrl.startsWith('/') ? voiceUrl : '/' + voiceUrl;
+        const audio = new window.Audio(audioPath);
         audioRef.current = audio;
-        setStatus('speaking');
+        
+        audio.addEventListener('loadstart', () => {
+            console.log('Audio loading started:', audioPath);
+            setStatus('speaking');
+        });
+        
+        audio.addEventListener('canplay', () => {
+            console.log('Audio can play:', audioPath);
+        });
+        
         audio.onended = () => {
+            console.log('Audio playback ended');
             setStatus(keepListening ? 'listening' : 'idle');
             if (keepListening) resetListeningTimeout();
         };
-        audio.onerror = () => {
+        
+        audio.onerror = (e) => {
+            console.error('Audio playback error:', e, audioPath);
             setStatus(keepListening ? 'listening' : 'idle');
         };
+        
         audio.play().catch(e => {
-            console.error('Voice playback failed:', e);
+            console.error('Voice playback failed:', e, audioPath);
             setStatus(keepListening ? 'listening' : 'idle');
         });
-    }, []);
+    }, [resetListeningTimeout]);
 
     useEffect(() => {
         detectedProfileRef.current = detectedProfile;
@@ -147,7 +164,11 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
             }
 
             // Check if there's a recorded voice for this person
-            const voiceUrl = dynamicVoiceMap[displayName.toLowerCase()] || dynamicVoiceMap[name.toLowerCase()];
+            const displayNameLower = displayName.toLowerCase();
+            const nameLower = name.toLowerCase();
+            const voiceUrl = dynamicVoiceMap[displayNameLower] || dynamicVoiceMap[nameLower];
+            
+            console.log('Profile detected:', { displayName, name, displayNameLower, nameLower, voiceUrl, availableKeys: Object.keys(dynamicVoiceMap) });
             
             const greeting = name ? `Hello ${name}. Welcome to the IT Tech Arena.` : `Hello. Welcome to the IT Tech Arena.`;
             
@@ -157,9 +178,11 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
             setTimeout(() => {
                 if (voiceUrl) {
                     // Use recorded voice
+                    console.log('Playing recorded voice:', voiceUrl);
                     playRecordedVoice(voiceUrl, false);
                 } else {
                     // Fallback to text-to-speech
+                    console.log('No voice found, using text-to-speech');
                     speakResponse(greeting, false);
                 }
             }, 500);
