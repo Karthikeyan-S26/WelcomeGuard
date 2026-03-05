@@ -113,6 +113,24 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
         synthRef.current.speak(utterance);
     }, []);
 
+    const playRecordedVoice = useCallback((voiceUrl: string, keepListening: boolean = false) => {
+        stopSpeaking();
+        const audio = new window.Audio(voiceUrl);
+        audioRef.current = audio;
+        setStatus('speaking');
+        audio.onended = () => {
+            setStatus(keepListening ? 'listening' : 'idle');
+            if (keepListening) resetListeningTimeout();
+        };
+        audio.onerror = () => {
+            setStatus(keepListening ? 'listening' : 'idle');
+        };
+        audio.play().catch(e => {
+            console.error('Voice playback failed:', e);
+            setStatus(keepListening ? 'listening' : 'idle');
+        });
+    }, []);
+
     useEffect(() => {
         detectedProfileRef.current = detectedProfile;
 
@@ -121,26 +139,37 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
 
             setStatus('thinking');
             let name = '';
+            let displayName = detectedProfile.name;
             if (detectedProfile.role_type === 'staff') {
                 name = `Professor ${detectedProfile.name}`;
             } else {
                 name = detectedProfile.name;
             }
 
-            const greeting = name ? `Hello ${name}. Welcome to the IT Tech Arena.` : `Hello. Welcome to the IT Tech Arena.`;
-            setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: greeting }]);
+            // Check if there's a recorded voice for this person
+            const voiceUrl = dynamicVoiceMap[displayName.toLowerCase()] || dynamicVoiceMap[name.toLowerCase()];
+            
+            if (voiceUrl) {
+                // Use recorded voice - don't show text message, just play the voice
+                setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: `Welcome ${name}!` }]);
+                setTimeout(() => {
+                    playRecordedVoice(voiceUrl, false);
+                }, 500);
+            } else {
+                // Fallback to text-to-speech
+                const greeting = name ? `Hello ${name}. Welcome to the IT Tech Arena.` : `Hello. Welcome to the IT Tech Arena.`;
+                setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: greeting }]);
 
-            // We use setTimeout to ensure states flush before speaking, optional but safe
-            setTimeout(() => {
-                // By passing false, it speaks the recorded greeting and then turns OFF listening mode
-                speakResponse(greeting, false);
-            }, 500);
+                setTimeout(() => {
+                    speakResponse(greeting, false);
+                }, 500);
+            }
 
         } else if (!detectedProfile) {
             // Reset when the detection clears
             lastGreetedIdRef.current = null;
         }
-    }, [detectedProfile, speakResponse]);
+    }, [detectedProfile, speakResponse, playRecordedVoice]);
 
     const resetListeningTimeout = () => {
         if (listeningTimeoutRef.current) clearTimeout(listeningTimeoutRef.current);
