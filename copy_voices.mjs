@@ -21,7 +21,7 @@ function copyVoicesRecursively(dir) {
             const srcPath = path.join(dir, oggFile.name);
             const destPath = path.join(destDir, `${cleanName}${ext}`);
             fs.copyFileSync(srcPath, destPath);
-            console.log(`Copied ${dir}/${oggFile.name} -> ${destDir}/${cleanName}${ext}`);
+            console.log(`Copied ${dir}/${oggFile.name} -> ${destPath}`);
 
             // Generate a clean keyword for text matching
             let words = folderName.toLowerCase()

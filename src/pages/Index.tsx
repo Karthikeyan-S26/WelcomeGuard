@@ -5,12 +5,12 @@ import { ProfileCard } from '@/components/ProfileCard';
 import { WelcomeBanner } from '@/components/WelcomeBanner';
 import { useFaceDetection } from '@/hooks/useFaceDetection';
 import { useProfiles } from '@/hooks/useProfiles';
-import { AIChatbot } from '@/components/AIChatbot';
 
 const Index = () => {
   const { data: profiles = [] } = useProfiles();
   const { videoRef, canvasRef, modelsLoaded, detectedPerson, cameraError, clearDetection } =
     useFaceDetection(profiles);
+  // The new AIChatbot handles the voice greeting now.
   // The new AIChatbot handles the voice greeting now.
   const hideTimerRef = useRef<number | null>(null);
 
@@ -45,10 +45,9 @@ const Index = () => {
             />
           </section>
 
-          {/* Right — Profile & Chatbot (40%) */}
+          {/* Right — Profile (40%) */}
           <aside className="flex-[2] flex flex-col gap-4">
             <ProfileCard profile={detectedPerson?.profile ?? null} />
-            <AIChatbot detectedProfile={detectedPerson?.profile ?? null} allProfiles={profiles} />
           </aside>
         </main>
 

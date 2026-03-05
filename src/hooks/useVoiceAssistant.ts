@@ -13,7 +13,7 @@ export type ChatMessage = {
 
 export type AssistantStatus = 'idle' | 'listening' | 'thinking' | 'speaking';
 
-const SYSTEM_PROMPT = `You are Nova, the official AI assistant for the Information Technology Department.
+const SYSTEM_PROMPT = `You are an AI assistant for the Information Technology Department.
 You have knowledge of the department staff dataset.
 Use the provided dataset to answer questions about staff members, their designation, role, and qualification.
 Answer clearly and professionally.
@@ -171,7 +171,7 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
 
         if (currentStatus === 'idle') {
             // Looking for wake word
-            const wakeWordMatch = lowerTranscript.match(/hey nova(.*)/);
+            const wakeWordMatch = lowerTranscript.match(/hey assistant(.*)/);
             if (wakeWordMatch) {
                 const query = wakeWordMatch[1].trim();
 

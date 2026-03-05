@@ -55,7 +55,7 @@ export function AIChatbot({ detectedProfile, allProfiles }: AIChatbotProps) {
                 <div className="flex items-center gap-3">
                     <img src={dragonLogo} alt="Logo" className="h-8 w-8 rounded-full border border-border object-cover" />
                     <div>
-                        <h3 className="text-sm font-semibold text-foreground">Nova AI Assistant</h3>
+                        <h3 className="text-sm font-semibold text-foreground">AI Assistant</h3>
                         <p className="text-xs text-muted-foreground">Voice-Activated</p>
                     </div>
                 </div>
@@ -82,7 +82,7 @@ export function AIChatbot({ detectedProfile, allProfiles }: AIChatbotProps) {
                     <div className="flex h-full flex-col items-center justify-center text-center opacity-70 fade-in-0 duration-500">
                         <Mic className="h-10 w-10 mb-4 text-muted-foreground/50" />
                         <p className="text-sm font-medium text-foreground">Assistant is active.</p>
-                        <p className="text-xs text-muted-foreground mt-1">Say <b>"Hey Nova"</b> to start.</p>
+                        <p className="text-xs text-muted-foreground mt-1">Say <b>"Hey Assistant"</b> to start.</p>
                     </div>
                 ) : (
                     messages.map((msg) => (
