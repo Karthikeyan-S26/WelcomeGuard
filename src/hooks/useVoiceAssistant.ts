@@ -149,21 +149,20 @@ export function useVoiceAssistant(detectedProfile: Profile | null, allProfiles: 
             // Check if there's a recorded voice for this person
             const voiceUrl = dynamicVoiceMap[displayName.toLowerCase()] || dynamicVoiceMap[name.toLowerCase()];
             
-            if (voiceUrl) {
-                // Use recorded voice - don't show text message, just play the voice
-                setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: `Welcome ${name}!` }]);
-                setTimeout(() => {
+            const greeting = name ? `Hello ${name}. Welcome to the IT Tech Arena.` : `Hello. Welcome to the IT Tech Arena.`;
+            
+            // Always show the greeting text
+            setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: greeting }]);
+            
+            setTimeout(() => {
+                if (voiceUrl) {
+                    // Use recorded voice
                     playRecordedVoice(voiceUrl, false);
-                }, 500);
-            } else {
-                // Fallback to text-to-speech
-                const greeting = name ? `Hello ${name}. Welcome to the IT Tech Arena.` : `Hello. Welcome to the IT Tech Arena.`;
-                setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: greeting }]);
-
-                setTimeout(() => {
+                } else {
+                    // Fallback to text-to-speech
                     speakResponse(greeting, false);
-                }, 500);
-            }
+                }
+            }, 500);
 
         } else if (!detectedProfile) {
             // Reset when the detection clears
