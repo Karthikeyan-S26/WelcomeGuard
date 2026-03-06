@@ -5,13 +5,16 @@ import { ProfileCard } from '@/components/ProfileCard';
 import { WelcomeBanner } from '@/components/WelcomeBanner';
 import { useFaceDetection } from '@/hooks/useFaceDetection';
 import { useProfiles } from '@/hooks/useProfiles';
+import { useVoiceGreeting } from '@/hooks/useVoiceGreeting';
 
 const Index = () => {
   const { data: profiles = [] } = useProfiles();
   const { videoRef, canvasRef, modelsLoaded, detectedPerson, cameraError, clearDetection } =
     useFaceDetection(profiles);
-  // The new AIChatbot handles the voice greeting now.
-  // The new AIChatbot handles the voice greeting now.
+  
+  // Voice greeting when face is detected
+  useVoiceGreeting(detectedPerson?.profile ?? null);
+  
   const hideTimerRef = useRef<number | null>(null);
 
   // Auto-clear detection after 8s
