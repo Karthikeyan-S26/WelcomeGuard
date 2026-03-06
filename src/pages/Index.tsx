@@ -14,7 +14,7 @@ const Index = () => {
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   
   // Voice greeting when face is detected
-  useVoiceGreeting(detectedPerson?.profile ?? null);
+  useVoiceGreeting(detectedPerson?.profile ?? null, audioUnlocked);
   
   const hideTimerRef = useRef<number | null>(null);
 

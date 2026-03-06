@@ -2,9 +2,12 @@ import { useEffect, useRef, useCallback } from 'react';
 import type { Profile } from '@/types/profile';
 import dynamicVoiceMap from '@/voiceMap.json';
 
-export function useVoiceGreeting(detectedProfile: Profile | null) {
-    const audioRef = useRef<HTMLAudioElement | null>(null);
+// Singleton audio element for better browser compatibility
+let globalAudio: HTMLAudioElement | null = null;
+
+export function useVoiceGreeting(detectedProfile: Profile | null, audioUnlocked: boolean) {
     const lastPlayedTimeRef = useRef<number>(0);
+    const lastNameRef = useRef<string>('');
 
     // Helper function to find voice by name
     const findVoiceUrl = useCallback((name: string): string | null => {
@@ -15,94 +18,77 @@ export function useVoiceGreeting(detectedProfile: Profile | null) {
         
         // Direct match
         if (voiceMap[nameLower]) {
-            console.log('✅ Found direct voice match:', nameLower, '→', voiceMap[nameLower]);
+            console.log('✅ Direct match:', voiceMap[nameLower]);
             return voiceMap[nameLower];
         }
         
-        // Check if any key in voiceMap matches part of the name
+        // Check partial matches
         for (const [key, value] of Object.entries(voiceMap)) {
             if (nameLower.includes(key.toLowerCase()) || key.toLowerCase().includes(nameLower)) {
-                console.log('✅ Found partial voice match:', key, '→', value);
+                console.log('✅ Partial match:', key, '→', value);
                 return value;
             }
         }
         
-        console.log('❌ No voice found for:', nameLower);
+        console.log('❌ No voice for:', nameLower);
         return null;
     }, []);
 
     const playVoice = useCallback((voiceUrl: string) => {
-        // Stop any currently playing audio
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
-            audioRef.current = null;
+        // Stop any existing audio
+        if (globalAudio) {
+            globalAudio.pause();
+            globalAudio.currentTime = 0;
         }
 
         const audioPath = voiceUrl.startsWith('/') ? voiceUrl : '/' + voiceUrl;
-        console.log('🎵 Attempting to play:', audioPath);
+        console.log('🎵 Playing:', audioPath);
         
-        const audio = new Audio(audioPath);
-        audioRef.current = audio;
-        audio.volume = 1.0;
-        
-        audio.onloadeddata = () => {
-            console.log('✅ Audio loaded successfully');
-        };
-        
-        audio.onplay = () => {
-            console.log('▶️ Audio is playing!');
-        };
-        
-        audio.onended = () => {
-            console.log('✅ Audio playback completed');
-        };
-        
-        audio.onerror = (e) => {
-            console.error('❌ Audio error:', e);
-        };
-        
-        // Try to play
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-            playPromise
-                .then(() => {
-                    console.log('✅ Voice playback started successfully!');
-                })
-                .catch(err => {
-                    console.error('❌ Play failed:', err.name, err.message);
-                });
+        // Create or reuse audio element
+        if (!globalAudio) {
+            globalAudio = new Audio();
         }
+        globalAudio.src = audioPath;
+        globalAudio.volume = 1.0;
+        
+        globalAudio.play()
+            .then(() => console.log('▶️ Playing!'))
+            .catch(err => console.error('❌ Play failed:', err.message));
     }, []);
 
     useEffect(() => {
-        if (detectedProfile) {
-            const now = Date.now();
-            // Play voice every time face is detected (with 3 second cooldown to avoid spam)
-            if (now - lastPlayedTimeRef.current > 3000) {
-                lastPlayedTimeRef.current = now;
-                
-                console.log('👤 Face detected:', detectedProfile.name);
-                
-                // Try to find voice for this person
-                const voiceUrl = findVoiceUrl(detectedProfile.name);
-                
-                if (voiceUrl) {
-                    console.log('🎤 Playing recorded greeting for:', detectedProfile.name);
-                    playVoice(voiceUrl);
-                } else {
-                    console.log('⚠️ No recorded voice for:', detectedProfile.name);
-                }
+        if (!detectedProfile || !audioUnlocked) {
+            if (!audioUnlocked && detectedProfile) {
+                console.log('⚠️ Click page to enable voice!');
+            }
+            return;
+        }
+
+        const now = Date.now();
+        const name = detectedProfile.name;
+        
+        // Play on new detection or after 3 second cooldown
+        const isNewPerson = lastNameRef.current !== name;
+        const cooldownPassed = now - lastPlayedTimeRef.current > 3000;
+        
+        if (isNewPerson || cooldownPassed) {
+            lastPlayedTimeRef.current = now;
+            lastNameRef.current = name;
+            
+            console.log('👤 Detected:', name);
+            
+            const voiceUrl = findVoiceUrl(name);
+            if (voiceUrl) {
+                playVoice(voiceUrl);
             }
         }
-    }, [detectedProfile, findVoiceUrl, playVoice]);
+    }, [detectedProfile, audioUnlocked, findVoiceUrl, playVoice]);
 
-    // Cleanup on unmount
+    // Cleanup
     useEffect(() => {
         return () => {
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current = null;
+            if (globalAudio) {
+                globalAudio.pause();
             }
         };
     }, []);
