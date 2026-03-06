@@ -1,11 +1,10 @@
 import { useEffect, useRef, useCallback } from 'react';
 import type { Profile } from '@/types/profile';
-import { toast } from 'sonner';
 import dynamicVoiceMap from '@/voiceMap.json';
 
 export function useVoiceGreeting(detectedProfile: Profile | null) {
-    const lastGreetedIdRef = useRef<string | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const lastPlayedTimeRef = useRef<number>(0);
 
     // Helper function to find voice by name
     const findVoiceUrl = useCallback((name: string): string | null => {
@@ -36,62 +35,65 @@ export function useVoiceGreeting(detectedProfile: Profile | null) {
         // Stop any currently playing audio
         if (audioRef.current) {
             audioRef.current.pause();
+            audioRef.current.currentTime = 0;
             audioRef.current = null;
         }
 
         const audioPath = voiceUrl.startsWith('/') ? voiceUrl : '/' + voiceUrl;
-        console.log('🎵 Playing voice:', audioPath);
+        console.log('🎵 Attempting to play:', audioPath);
         
-        try {
-            const audio = new Audio(audioPath);
-            audioRef.current = audio;
-            
-            audio.addEventListener('canplaythrough', () => {
-                console.log('✅ Audio ready:', audioPath);
-            });
-            
-            audio.onended = () => {
-                console.log('✅ Audio playback completed');
-            };
-            
-            audio.onerror = (e) => {
-                console.error('❌ Audio error:', e);
-                toast.error('Voice playback error');
-            };
-            
-            audio.play()
+        const audio = new Audio(audioPath);
+        audioRef.current = audio;
+        audio.volume = 1.0;
+        
+        audio.onloadeddata = () => {
+            console.log('✅ Audio loaded successfully');
+        };
+        
+        audio.onplay = () => {
+            console.log('▶️ Audio is playing!');
+        };
+        
+        audio.onended = () => {
+            console.log('✅ Audio playback completed');
+        };
+        
+        audio.onerror = (e) => {
+            console.error('❌ Audio error:', e);
+        };
+        
+        // Try to play
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise
                 .then(() => {
-                    console.log('✅ Voice playback started!');
+                    console.log('✅ Voice playback started successfully!');
                 })
-                .catch(e => {
-                    console.error('❌ Play failed:', e.message);
-                    // Try with user gesture workaround
-                    toast.error('Click anywhere on the page to enable voice');
+                .catch(err => {
+                    console.error('❌ Play failed:', err.name, err.message);
                 });
-        } catch (e) {
-            console.error('❌ Failed to create audio:', e);
         }
     }, []);
 
     useEffect(() => {
-        if (detectedProfile && detectedProfile.id !== lastGreetedIdRef.current) {
-            lastGreetedIdRef.current = detectedProfile.id;
-            
-            console.log('👤 Face detected:', detectedProfile.name);
-            
-            // Try to find voice for this person
-            const voiceUrl = findVoiceUrl(detectedProfile.name);
-            
-            if (voiceUrl) {
-                console.log('🎤 Playing recorded greeting for:', detectedProfile.name);
-                setTimeout(() => {
+        if (detectedProfile) {
+            const now = Date.now();
+            // Play voice every time face is detected (with 3 second cooldown to avoid spam)
+            if (now - lastPlayedTimeRef.current > 3000) {
+                lastPlayedTimeRef.current = now;
+                
+                console.log('👤 Face detected:', detectedProfile.name);
+                
+                // Try to find voice for this person
+                const voiceUrl = findVoiceUrl(detectedProfile.name);
+                
+                if (voiceUrl) {
+                    console.log('🎤 Playing recorded greeting for:', detectedProfile.name);
                     playVoice(voiceUrl);
-                }, 500);
-            } else {
-                console.log('⚠️ No recorded voice for:', detectedProfile.name);
+                } else {
+                    console.log('⚠️ No recorded voice for:', detectedProfile.name);
+                }
             }
-        } else if (!detectedProfile) {
-            lastGreetedIdRef.current = null;
         }
     }, [detectedProfile, findVoiceUrl, playVoice]);
 

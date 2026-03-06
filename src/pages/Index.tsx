@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { CameraFeed } from '@/components/CameraFeed';
 import { ProfileCard } from '@/components/ProfileCard';
@@ -11,11 +11,36 @@ const Index = () => {
   const { data: profiles = [] } = useProfiles();
   const { videoRef, canvasRef, modelsLoaded, detectedPerson, cameraError, clearDetection } =
     useFaceDetection(profiles);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
   
   // Voice greeting when face is detected
   useVoiceGreeting(detectedPerson?.profile ?? null);
   
   const hideTimerRef = useRef<number | null>(null);
+
+  // Unlock audio on first user interaction
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (!audioUnlocked) {
+        // Create and play a silent audio to unlock
+        const silentAudio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+        silentAudio.play().then(() => {
+          console.log('🔊 Audio unlocked!');
+          setAudioUnlocked(true);
+        }).catch(() => {
+          console.log('⚠️ Audio still locked, click to unlock');
+        });
+      }
+    };
+
+    document.addEventListener('click', unlockAudio);
+    document.addEventListener('touchstart', unlockAudio);
+    
+    return () => {
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('touchstart', unlockAudio);
+    };
+  }, [audioUnlocked]);
 
   // Auto-clear detection after 8s
   useEffect(() => {
@@ -58,7 +83,9 @@ const Index = () => {
         <footer className="flex items-center justify-between border-t border-border bg-card px-6 py-2 text-xs text-muted-foreground">
           <span>Registered Profiles: {profiles.length}</span>
           <span>Status: {modelsLoaded ? '● System Active' : '○ Loading...'}</span>
-          <span>Detection: Real-time</span>
+          <span className={audioUnlocked ? 'text-green-500' : 'text-yellow-500'}>
+            {audioUnlocked ? '🔊 Voice Ready' : '🔇 Click to enable voice'}
+          </span>
         </footer>
       </div>
     </>
